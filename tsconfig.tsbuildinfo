@@ -1,1 +1,1 @@
-{"root":["./src/generate.ts","./src/index.ts"],"version":"5.8.3"}
+{"root":["./src/aws.ts","./src/file.ts","./src/generate.ts","./src/index.ts"],"version":"5.8.3"}
