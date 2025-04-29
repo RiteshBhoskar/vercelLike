@@ -12,13 +12,15 @@ const s3 = new S3Client({
     },
 })
 
+const BUCKET_NAME  = process.env.BUCKET_NAME!;
+
 export const uploadFile = async (fileName: string, localFilePath: string ) => {
     console.log("Uploading file to S3...")
 
     const fileContent = fs.readFileSync(localFilePath);
 
     const command  = new PutObjectCommand({
-        Bucket: "vercelike",
+        Bucket: BUCKET_NAME,
         Key: fileName,
         Body: fileContent,
     })

@@ -6,6 +6,12 @@ import path from "path";
 import { getAllFiles } from "./file";
 import { uploadFile } from "./aws";
 import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs"
+import { Redis } from "@upstash/redis"
+
+const redis = new Redis({
+    url: process.env.REDIS_URL,
+    token: process.env.REDIS_TOKEN
+})
 
 const sqs = new SQSClient({
     region: "ap-south-1",
@@ -28,19 +34,28 @@ app.post("/deploy", async (req, res) => {
 
     const files = getAllFiles(path.join(__dirname, `output/${id}`));
 
-    files.forEach(async file => {
-        await uploadFile(file.slice(path.dirname.length + 1), file)
-    })
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    for (const file of files) {
+        const key = file.slice(path.join(__dirname, `output/${id}`).length + 1);
+        await uploadFile(`output/${id}/${key}`, file);
+    }
 
     await sqs.send(new SendMessageCommand({
         QueueUrl: queueUrl,
         MessageBody: id,
     }))
 
+    redis.hset("status", { [id]: "Getting your files from Github..."})
+
     res.json({
         id: id,
+    })
+})
+
+app.get("/status", async (req, res) => {
+    const id = req.query.id;
+    const response = await redis.hget("status", id as string);
+    res.json({
+        status: response
     })
 })
 

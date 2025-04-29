@@ -20,6 +20,11 @@ const path_1 = __importDefault(require("path"));
 const file_1 = require("./file");
 const aws_1 = require("./aws");
 const client_sqs_1 = require("@aws-sdk/client-sqs");
+const redis_1 = require("@upstash/redis");
+const redis = new redis_1.Redis({
+    url: process.env.REDIS_URL,
+    token: process.env.REDIS_TOKEN
+});
 const sqs = new client_sqs_1.SQSClient({
     region: "ap-south-1",
     credentials: {
@@ -36,16 +41,24 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const id = (0, generate_1.generate)();
     yield (0, simple_git_1.default)().clone(repoUrl, path_1.default.join(__dirname, `output/${id}`));
     const files = (0, file_1.getAllFiles)(path_1.default.join(__dirname, `output/${id}`));
-    files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
-        yield (0, aws_1.uploadFile)(file.slice(path_1.default.dirname.length + 1), file);
-    }));
-    yield new Promise((resolve) => setTimeout(resolve, 5000));
+    for (const file of files) {
+        const key = file.slice(path_1.default.join(__dirname, `output/${id}`).length + 1);
+        yield (0, aws_1.uploadFile)(`output/${id}/${key}`, file);
+    }
     yield sqs.send(new client_sqs_1.SendMessageCommand({
         QueueUrl: queueUrl,
         MessageBody: id,
     }));
+    redis.hset("status", { [id]: "Getting your files from Github..." });
     res.json({
         id: id,
+    });
+}));
+app.get("/status", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = req.query.id;
+    const response = yield redis.hget("status", id);
+    res.json({
+        status: response
     });
 }));
 app.listen(3000);

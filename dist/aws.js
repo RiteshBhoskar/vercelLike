@@ -24,11 +24,12 @@ const s3 = new client_s3_1.S3Client({
         secretAccessKey: process.env.SECRET_ACCESS_KEY,
     },
 });
+const BUCKET_NAME = process.env.BUCKET_NAME;
 const uploadFile = (fileName, localFilePath) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("Uploading file to S3...");
     const fileContent = fs_1.default.readFileSync(localFilePath);
     const command = new client_s3_1.PutObjectCommand({
-        Bucket: "vercelike",
+        Bucket: BUCKET_NAME,
         Key: fileName,
         Body: fileContent,
     });
