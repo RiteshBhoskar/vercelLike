@@ -19,6 +19,15 @@ const simple_git_1 = __importDefault(require("simple-git"));
 const path_1 = __importDefault(require("path"));
 const file_1 = require("./file");
 const aws_1 = require("./aws");
+const client_sqs_1 = require("@aws-sdk/client-sqs");
+const sqs = new client_sqs_1.SQSClient({
+    region: "ap-south-1",
+    credentials: {
+        accessKeyId: process.env.ACCESS_KEY,
+        secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    }
+});
+const queueUrl = process.env.SQS_ENDPOINT;
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
@@ -30,6 +39,13 @@ app.post("/deploy", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     files.forEach((file) => __awaiter(void 0, void 0, void 0, function* () {
         yield (0, aws_1.uploadFile)(file.slice(path_1.default.dirname.length + 1), file);
     }));
-    res.json({ id: id });
+    yield new Promise((resolve) => setTimeout(resolve, 5000));
+    yield sqs.send(new client_sqs_1.SendMessageCommand({
+        QueueUrl: queueUrl,
+        MessageBody: id,
+    }));
+    res.json({
+        id: id,
+    });
 }));
 app.listen(3000);
